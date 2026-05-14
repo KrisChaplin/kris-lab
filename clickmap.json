@@ -1,0 +1,138 @@
+{
+  "ch1_toggle": [
+    760,
+    145
+  ],
+  "ch2_toggle": [
+    760,
+    210
+  ],
+  "ch3_toggle": [
+    760,
+    275
+  ],
+  "ch4_toggle": [
+    760,
+    340
+  ],
+  "cursor_button": [
+    553,
+    30
+  ],
+  "measure_button": [
+    614,
+    30
+  ],
+  "meas_dialog_close": [
+    655,
+    68
+  ],
+  "meas_dialog_source_a": [
+    170,
+    195
+  ],
+  "meas_dialog_vpp": [
+    124,
+    240
+  ],
+  "runstop_button": [
+    740,
+    30
+  ],
+  "meas_dialog_zoom": [
+    690,
+    68
+  ],
+  "meas_source_ch1": [
+    170,
+    224
+  ],
+  "meas_source_ch2": [
+    170,
+    257
+  ],
+  "meas_source_ch3": [
+    170,
+    290
+  ],
+  "meas_source_ch4": [
+    170,
+    322
+  ],
+  "meas_source_math": [
+    255,
+    224
+  ],
+  "trig_button": [
+    453,
+    30
+  ],
+  "trig_dialog_type": [
+    183,
+    108
+  ],
+  "trig_dialog_source": [
+    183,
+    154
+  ],
+  "trig_slope_rising": [
+    151,
+    205
+  ],
+  "trig_slope_falling": [
+    213,
+    205
+  ],
+  "trig_slope_either": [
+    276,
+    205
+  ],
+  "trig_mode_auto": [
+    481,
+    110
+  ],
+  "trig_mode_normal": [
+    543,
+    110
+  ],
+  "trig_mode_single": [
+    605,
+    110
+  ],
+  "trig_dialog_coupling": [
+    514,
+    154
+  ],
+  "trig_level_field": [
+    514,
+    205
+  ],
+  "trig_holdoff_toggle": [
+    160,
+    358
+  ],
+  "trig_noise_toggle": [
+    502,
+    358
+  ],
+  "trig_tab_vertical": [
+    372,
+    428
+  ],
+  "trig_tab_horizontal": [
+    455,
+    428
+  ],
+  "trig_tab_trigger": [
+    538,
+    428
+  ],
+  "trig_tab_measure": [
+    619,
+    428
+  ],
+  "trig_dialog_close": [
+    755,
+    68
+  ]
+}

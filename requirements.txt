@@ -1,0 +1,5 @@
+websocket-client>=1.6
+pillow>=10.0
+pytesseract>=0.3.10
+# Optional: matplotlib for `clickmap.py --gui` interactive coord picker
+# matplotlib>=3.7
