@@ -1,53 +1,40 @@
 # GitHub Copilot instructions
 
-This repository is a Python control library and CLI for the FNIRSI
-DPOF1204-200 oscilloscope. Read [AGENTS.md](../AGENTS.md) for the full
-agent guide; this file captures Copilot-specific conventions.
+This repository contains automation libraries and AI agent instructions
+for multiple lab instruments. Read [AGENTS.md](../AGENTS.md) for the
+full agent guide; this file captures Copilot-specific conventions.
 
-## Project shape
+## Repository structure
 
-- Top-level flat layout — modules import each other as bare names
-  (`from screen import capture`, `from trigger import TRIG_TYPES`, etc.).
-  Do not move files into a package directory without updating every
-  import.
-- CLI entry: [scopectl.py](../scopectl.py) — argparse subcommands.
-- Library entry: `Scope` class in [scope.py](../scope.py).
-- Documentation: [docs/INDEX.md](../docs/INDEX.md) is the table of
-  contents. Each topic is its own small file — load only what you need.
+Each instrument lives in its own folder with dedicated code and docs:
 
-## Code style
+| Folder | Instrument | Agent guide |
+|--------|------------|-------------|
+| [fnirsi-oscilloscope/](../fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 | [AGENTS.md](../fnirsi-oscilloscope/AGENTS.md) |
 
-- Python 3.10+ syntax (`str | None`, structural pattern matching OK).
-- Type hints on public methods; no `from __future__ import annotations`
-  in new files unless the file already had it.
-- Touchscreen coordinates are kept as module-level `UPPER_SNAKE`
-  constants in `trigger.py` / `measure.py` / `mathui.py`.
-- Pixel-sampling helpers belong in `scope.py` as nested functions of the
-  method that owns them — they tend to be one-shot and aren't worth
-  exposing.
-- No docstring-adding passes on code you didn't otherwise change.
+## Global conventions
 
-## Critical runtime gotchas
-
-1. The scope firmware buffers exactly one pending SCPI reply, released
-   on the next command. `Scope._exchange()` already pairs every real
-   command with a dummy `get_dev_info` to flush. Never call `ws.send`
-   directly.
-2. Many SCPI commands return `"deadline has elapsed"` — see
-   [docs/scpi.md](../docs/scpi.md) before adding new ones.
-3. No waveform binary export exists on this firmware.
-4. Touchscreen needs a `down`+`up` pair (use `Scope.touch()`).
-5. Image-budget caps — sample pixels with PIL rather than viewing every
-   PNG.
-
-## Test signal assumed by examples
-
-CH3 + CH4 square wave, both on 100 mV/div, trigger CH3 rising at 0.15 V,
-timebase 500 µs/div → 1 kHz, Vpp 312 mV.
-
-## Don't
-
-- Don't auto-commit. The human runs `git add`/`commit` after testing.
+- **Do not auto-commit.** The human runs `git add`/`commit` after testing.
+- **Python 3.10+ syntax** (`str | None`, structural pattern matching OK).
+- Type hints on public methods.
+- Don't add new dependencies without updating `requirements.txt`.
 - Don't refactor unrelated code while fixing a bug.
-- Don't add new top-level dependencies without updating
-  [requirements.txt](../requirements.txt).
+
+## Instrument-specific work
+
+When working on a specific instrument:
+1. Load that instrument's `AGENTS.md` for conventions and gotchas.
+2. Load topic files from `<instrument>/docs/` as needed.
+3. Run CLI tools from within the instrument folder.
+
+## FNIRSI Oscilloscope quick reference
+
+Location: [fnirsi-oscilloscope/](../fnirsi-oscilloscope/)
+
+- Flat layout — modules import each other as bare names within the folder.
+- CLI entry: `scopectl.py` — argparse subcommands.
+- Library entry: `Scope` class in `scope.py`.
+- Documentation: `docs/INDEX.md` is the table of contents.
+- Touchscreen coordinates are module-level `UPPER_SNAKE` constants.
+- See [fnirsi-oscilloscope/AGENTS.md](../fnirsi-oscilloscope/AGENTS.md)
+  for critical runtime gotchas (SCPI buffering, dialog detection, etc.).
