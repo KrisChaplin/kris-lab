@@ -14,7 +14,7 @@ CLI tools, and documentation.
 | Folder | Instrument | Agent guide |
 |--------|------------|-------------|
 | [fnirsi-oscilloscope/](fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 oscilloscope | [fnirsi-oscilloscope/AGENTS.md](fnirsi-oscilloscope/AGENTS.md) |
-| *(coming soon)* | Logic analyzer | — |
+| [kingst-la2016/](kingst-la2016/) | Kingst LA2016 logic analyzer | [kingst-la2016/AGENTS.md](kingst-la2016/AGENTS.md) |
 
 ## Global conventions for agents
 

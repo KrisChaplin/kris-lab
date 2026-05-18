@@ -11,6 +11,7 @@ Each instrument lives in its own folder with dedicated code and docs:
 | Folder | Instrument | Agent guide |
 |--------|------------|-------------|
 | [fnirsi-oscilloscope/](../fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 | [AGENTS.md](../fnirsi-oscilloscope/AGENTS.md) |
+| [kingst-la2016/](../kingst-la2016/) | Kingst LA2016 | [AGENTS.md](../kingst-la2016/AGENTS.md) |
 
 ## Global conventions
 
@@ -38,3 +39,25 @@ Location: [fnirsi-oscilloscope/](../fnirsi-oscilloscope/)
 - Touchscreen coordinates are module-level `UPPER_SNAKE` constants.
 - See [fnirsi-oscilloscope/AGENTS.md](../fnirsi-oscilloscope/AGENTS.md)
   for critical runtime gotchas (SCPI buffering, dialog detection, etc.).
+
+## Kingst LA2016 quick reference
+
+Location: [kingst-la2016/](../kingst-la2016/)
+
+**CLI wrapper (use this exact path):**
+```
+/mnt/github-runner-mounts/tools/sigrok-local/bin/sigrok-cli-la2016
+```
+
+**Command template:**
+```bash
+sigrok-cli-la2016 -d kingst-la2016 --config samplerate=<RATE> --samples <N> [--triggers CH0=r] [-P i2c:scl=CH0:sda=CH1] -o out.sr
+```
+
+**Key facts:**
+- 16 channels (CH0-CH15), 200 MHz max, 128 MiB memory
+- Rates: 1M (I2C/UART), 10M (slow SPI), 100M (fast SPI)
+- Triggers: `CH0=r` (rise), `=f` (fall), `=1` (high), `=0` (low)
+- Only ONE edge trigger allowed (level triggers can combine)
+- GUI: `pulseview-la2016` (run from regular terminal, not VS Code)
+- See [kingst-la2016/AGENTS.md](../kingst-la2016/AGENTS.md) for full command reference.

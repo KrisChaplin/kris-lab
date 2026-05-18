@@ -10,7 +10,7 @@ and agent-readable documentation.
 | Folder | Instrument | Status |
 |--------|------------|--------|
 | [fnirsi-oscilloscope/](fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 (200 MHz, 1 GS/s) | ✅ Working |
-| *(coming soon)* | Logic analyzer | 🚧 Planned |
+| [kingst-la2016/](kingst-la2016/) | Kingst LA2016 (200 MHz, 16 ch) | ✅ Working |
 
 ## Quick start
 
