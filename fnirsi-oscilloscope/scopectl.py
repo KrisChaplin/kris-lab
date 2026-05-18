@@ -110,6 +110,59 @@ def cmd_run(s, _):     print("run ok=",    s.run())
 def cmd_stop(s, _):    print("stop ok=",   s.stop())
 def cmd_single(s, _):  print("single ok=", s.single())
 def cmd_auto(s, _):    print("auto ok=",   s.auto())
+def cmd_reset(s, _):   print("reset ok=",  s.write("*RST"))
+
+
+def cmd_ping(s: Scope, _):
+    """Quick connection test - verify scope is reachable."""
+    import time as _t
+    start = _t.time()
+    idn = s.idn()
+    elapsed = (_t.time() - start) * 1000
+    if idn:
+        print(f"ok ({elapsed:.0f}ms) - {idn}")
+    else:
+        print(f"FAIL - no response")
+
+
+def cmd_diagnose(s: Scope, args):
+    """Full init: reset → auto → state → optional screenshot.
+    
+    One command to go from unknown state to captured signal.
+    """
+    import time as _t
+    from screen import capture, save_png
+    
+    print("=== Diagnose: reset + auto + state ===")
+    
+    # 1. Reset (clears dialogs, resets to defaults)
+    print("1. Reset...", end=" ", flush=True)
+    s.write("*RST")
+    print("ok")
+    _t.sleep(0.3)
+    
+    # 2. Enable requested channel (default: all off after reset, enable CH1)
+    ch = args.channel or 1
+    print(f"2. Enable CH{ch}...", end=" ", flush=True)
+    s.channel_set(ch, True)
+    print("ok")
+    
+    # 3. Auto-set (finds signal, adjusts scale/timebase/trigger)
+    print("3. Auto-set...", end=" ", flush=True)
+    s.auto()
+    _t.sleep(1.0)  # auto needs time to analyze
+    print("ok")
+    
+    # 4. State dump
+    print("\n=== Current State ===")
+    cmd_state(s, args)
+    
+    # 5. Screenshot if requested
+    if args.screenshot:
+        out = args.screenshot
+        print(f"\n=== Screenshot: {out} ===")
+        save_png(capture(s.host), out)
+        print(f"saved {out}")
 
 
 def cmd_acq(s: Scope, args):
@@ -241,6 +294,134 @@ def cmd_setup_square(s: Scope, args):
     cmd_state(s, args)
 
 
+# ============= Protocol Presets =============
+
+def _preset_apply(s: Scope, name: str, channels: list, timebase: float,
+                  trig_ch: int, trig_level: float, scale: float,
+                  screenshot: str | None):
+    """Common logic for protocol presets."""
+    from screen import capture, save_png
+    import time as _t
+    
+    print(f"=== Preset: {name} ===")
+    
+    # Reset first to clear dialogs
+    print("1. Reset...", end=" ", flush=True)
+    s.write("*RST")
+    _t.sleep(0.3)
+    print("ok")
+    
+    # Enable channels
+    print(f"2. Enable CH{channels}...", end=" ", flush=True)
+    for ch in channels:
+        s.channel_set(ch, True)
+        s.channel_coupling(ch, "DC")
+        s.channel_probe(ch, 1)
+        s.channel_scale(ch, scale)
+        s.channel_offset(ch, 0)
+    print("ok")
+    
+    # Timebase
+    print(f"3. Timebase {timebase*1e6:.1f}µs/div...", end=" ", flush=True)
+    s.timebase(timebase)
+    print("ok")
+    
+    # Trigger
+    print(f"4. Trigger CH{trig_ch} @ {trig_level}V falling...", end=" ", flush=True)
+    s.trigger_source(trig_ch)
+    s.trigger_slope("FALL")  # Start conditions are falling edge
+    s.trigger_level(trig_level)
+    print("ok")
+    
+    s.run()
+    _t.sleep(0.5)
+    
+    if screenshot:
+        print(f"5. Screenshot {screenshot}...", end=" ", flush=True)
+        save_png(capture(s.host), screenshot)
+        print("ok")
+    
+    print(f"\nPreset '{name}' applied. Adjust scale/timebase as needed.")
+
+
+def cmd_preset_i2c(s: Scope, args):
+    """I2C preset: 2 channels (SDA, SCL), trigger on SDA falling (start)."""
+    # I2C speeds: 100kHz standard, 400kHz fast, 1MHz fast-mode+
+    # Default to 400kHz settings
+    speed = args.speed or "400k"
+    tb_map = {"100k": 20e-6, "400k": 5e-6, "1m": 2e-6}
+    timebase = tb_map.get(speed, 5e-6)
+    
+    ch_sda = args.sda or 1
+    ch_scl = args.scl or 2
+    voltage = args.voltage or 3.3
+    
+    print(f"I2C preset: SDA=CH{ch_sda}, SCL=CH{ch_scl}, speed={speed}, {voltage}V logic")
+    _preset_apply(s, f"I2C-{speed}", [ch_sda, ch_scl], timebase,
+                  trig_ch=ch_sda, trig_level=voltage * 0.5,
+                  scale=voltage / 3, screenshot=args.screenshot)
+
+
+def cmd_preset_spi(s: Scope, args):
+    """SPI preset: 4 channels (SCK, MOSI, MISO, CS), trigger on CS falling."""
+    # SPI speeds vary widely: 1MHz to 50MHz+
+    speed = args.speed or "1m"
+    tb_map = {"1m": 2e-6, "10m": 200e-9, "25m": 100e-9}
+    timebase = tb_map.get(speed, 2e-6)
+    
+    ch_sck = args.sck or 1
+    ch_mosi = args.mosi or 2
+    ch_miso = args.miso or 3
+    ch_cs = args.cs or 4
+    voltage = args.voltage or 3.3
+    channels = [ch_sck, ch_mosi, ch_miso, ch_cs]
+    
+    print(f"SPI preset: SCK=CH{ch_sck}, MOSI=CH{ch_mosi}, MISO=CH{ch_miso}, CS=CH{ch_cs}")
+    print(f"  speed={speed}, {voltage}V logic")
+    _preset_apply(s, f"SPI-{speed}", channels, timebase,
+                  trig_ch=ch_cs, trig_level=voltage * 0.5,
+                  scale=voltage / 3, screenshot=args.screenshot)
+
+
+def cmd_preset_uart(s: Scope, args):
+    """UART preset: 1 channel, trigger on falling edge (start bit)."""
+    # UART baud rates: 9600, 115200, 921600
+    baud = args.baud or "115200"
+    # Timebase to show ~10 bits
+    baud_int = int(baud.replace("k", "000"))
+    bit_time = 1.0 / baud_int
+    timebase = bit_time * 2  # Show ~2 bits per division (20 bits total)
+    
+    ch = args.channel or 1
+    voltage = args.voltage or 3.3
+    
+    print(f"UART preset: CH{ch}, baud={baud}, {voltage}V logic")
+    print(f"  bit time={bit_time*1e6:.2f}µs, timebase={timebase*1e6:.1f}µs/div")
+    _preset_apply(s, f"UART-{baud}", [ch], timebase,
+                  trig_ch=ch, trig_level=voltage * 0.5,
+                  scale=voltage / 3, screenshot=args.screenshot)
+
+
+def cmd_preset_i2s(s: Scope, args):
+    """I2S preset: 3 channels (BCLK, WS, DATA), trigger on WS edge."""
+    # I2S bit clock: typically 1.4MHz (44.1kHz * 32bit) to 12MHz+
+    # Default to 3MHz settings
+    speed = args.speed or "3m"
+    tb_map = {"1m": 2e-6, "3m": 500e-9, "12m": 200e-9}
+    timebase = tb_map.get(speed, 500e-9)
+    
+    ch_bclk = args.bclk or 1
+    ch_ws = args.ws or 2
+    ch_data = args.data or 3
+    voltage = args.voltage or 3.3
+    
+    print(f"I2S preset: BCLK=CH{ch_bclk}, WS=CH{ch_ws}, DATA=CH{ch_data}")
+    print(f"  speed={speed}, {voltage}V logic")
+    _preset_apply(s, f"I2S-{speed}", [ch_bclk, ch_ws, ch_data], timebase,
+                  trig_ch=ch_ws, trig_level=voltage * 0.5,
+                  scale=voltage / 3, screenshot=args.screenshot)
+
+
 def main():
     p = argparse.ArgumentParser(prog="scopectl")
     p.add_argument("--host", default="192.168.0.75")
@@ -292,6 +473,15 @@ def main():
     sub.add_parser("stop").set_defaults(fn=cmd_stop)
     sub.add_parser("single").set_defaults(fn=cmd_single)
     sub.add_parser("auto").set_defaults(fn=cmd_auto)
+    sub.add_parser("reset", help="*RST - close dialogs, reset to defaults").set_defaults(fn=cmd_reset)
+    sub.add_parser("ping", help="quick connection test").set_defaults(fn=cmd_ping)
+
+    p_diag = sub.add_parser("diagnose", help="reset + auto + state (one-shot signal find)")
+    p_diag.add_argument("-c", "--channel", type=int, choices=(1, 2, 3, 4),
+                        help="channel to enable (default: 1)")
+    p_diag.add_argument("-s", "--screenshot", metavar="FILE",
+                        help="save screenshot to FILE")
+    p_diag.set_defaults(fn=cmd_diagnose)
 
     p_acq = sub.add_parser("acq", help="acquisition mode / status")
     p_acq.add_argument("--type", choices=["NORM", "PEAK"],
@@ -377,6 +567,41 @@ def main():
                     help="(deprecated, ignored — channel_set is now idempotent)")
     sq.add_argument("--out", help="screenshot path (default: square.png)")
     sq.set_defaults(fn=cmd_setup_square)
+
+    # Protocol presets
+    p_i2c = sub.add_parser("preset-i2c", help="I2C preset (SDA+SCL)")
+    p_i2c.add_argument("--sda", type=int, choices=(1, 2, 3, 4), help="SDA channel (default: 1)")
+    p_i2c.add_argument("--scl", type=int, choices=(1, 2, 3, 4), help="SCL channel (default: 2)")
+    p_i2c.add_argument("--speed", choices=("100k", "400k", "1m"), help="I2C speed (default: 400k)")
+    p_i2c.add_argument("--voltage", type=float, help="logic voltage (default: 3.3)")
+    p_i2c.add_argument("-s", "--screenshot", metavar="FILE", help="save screenshot")
+    p_i2c.set_defaults(fn=cmd_preset_i2c)
+
+    p_spi = sub.add_parser("preset-spi", help="SPI preset (SCK+MOSI+MISO+CS)")
+    p_spi.add_argument("--sck", type=int, choices=(1, 2, 3, 4), help="SCK channel (default: 1)")
+    p_spi.add_argument("--mosi", type=int, choices=(1, 2, 3, 4), help="MOSI channel (default: 2)")
+    p_spi.add_argument("--miso", type=int, choices=(1, 2, 3, 4), help="MISO channel (default: 3)")
+    p_spi.add_argument("--cs", type=int, choices=(1, 2, 3, 4), help="CS channel (default: 4)")
+    p_spi.add_argument("--speed", choices=("1m", "10m", "25m"), help="SPI speed (default: 1m)")
+    p_spi.add_argument("--voltage", type=float, help="logic voltage (default: 3.3)")
+    p_spi.add_argument("-s", "--screenshot", metavar="FILE", help="save screenshot")
+    p_spi.set_defaults(fn=cmd_preset_spi)
+
+    p_uart = sub.add_parser("preset-uart", help="UART preset (single channel)")
+    p_uart.add_argument("-c", "--channel", type=int, choices=(1, 2, 3, 4), help="channel (default: 1)")
+    p_uart.add_argument("--baud", choices=("9600", "115200", "921600"), help="baud rate (default: 115200)")
+    p_uart.add_argument("--voltage", type=float, help="logic voltage (default: 3.3)")
+    p_uart.add_argument("-s", "--screenshot", metavar="FILE", help="save screenshot")
+    p_uart.set_defaults(fn=cmd_preset_uart)
+
+    p_i2s = sub.add_parser("preset-i2s", help="I2S preset (BCLK+WS+DATA)")
+    p_i2s.add_argument("--bclk", type=int, choices=(1, 2, 3, 4), help="BCLK channel (default: 1)")
+    p_i2s.add_argument("--ws", type=int, choices=(1, 2, 3, 4), help="WS/LRCLK channel (default: 2)")
+    p_i2s.add_argument("--data", type=int, choices=(1, 2, 3, 4), help="DATA channel (default: 3)")
+    p_i2s.add_argument("--speed", choices=("1m", "3m", "12m"), help="bit clock (default: 3m)")
+    p_i2s.add_argument("--voltage", type=float, help="logic voltage (default: 3.3)")
+    p_i2s.add_argument("-s", "--screenshot", metavar="FILE", help="save screenshot")
+    p_i2s.set_defaults(fn=cmd_preset_i2s)
 
     args = p.parse_args()
     with Scope(args.host, debug=args.debug) as s:

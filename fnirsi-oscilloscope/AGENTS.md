@@ -3,22 +3,226 @@
 > Instrument-specific entry point for AI coding agents. For the full lab
 > overview, see [../AGENTS.md](../AGENTS.md).
 
-## What this instrument is
+## TL;DR — Copy These
 
-Python control library and CLI for the **FNIRSI DPOF1204-200**
-oscilloscope. Talks to the scope over two WebSockets exposed by its
-embedded HTTP server. The firmware has partial SCPI support, so much of
-the library drives the on-screen UI by tapping mapped touchscreen
-coordinates and reading results via Tesseract OCR.
+```bash
+# Working directory (always run from here)
+cd /home/krisc/work/kris_lab/kris-lab/fnirsi-oscilloscope
 
-Default scope IP: `192.168.0.75`. Override per-call via `--host`.
+# ONE-SHOT signal find: reset + enable channel + auto + state + screenshot
+python scopectl.py diagnose -c <CH> -s /tmp/scope.png
 
-## Read this first
+# Or step by step:
+python scopectl.py reset                           # Close dialogs, reset settings
+python scopectl.py ch <N> --on                     # Enable channel
+python scopectl.py auto                            # Auto-find signal
 
-Documentation is **partitioned by topic** in [docs/](docs/) so you can
-load only the file relevant to a task. Always start at
-[docs/INDEX.md](docs/INDEX.md). Each topic file is small (typically
-<200 lines).
+# Safe init (closes dialogs WITHOUT resetting settings)
+python scopectl.py click measure_button && sleep 0.3 && python scopectl.py click measure_button
+
+# Check current state
+python scopectl.py state
+
+# Screenshot to see what's on screen
+python scopectl.py screenshot /tmp/scope.png
+
+# Channel control (CH 1-4)
+python scopectl.py ch <N> --on                     # Turn on channel
+python scopectl.py ch <N> --scale <V/div>          # Voltage scale
+python scopectl.py ch <N> --offset <V>             # Vertical offset
+
+# Timebase (seconds per division)
+python scopectl.py tb <s/div>                      # e.g., 500e-6 for 500µs
+
+# Trigger
+python scopectl.py trig --src <N> --lev <V> --slope RISE
+
+# Measurements (OCR-based)
+python scopectl.py measure <ch> Vpp Freq Vmax Vmin
+
+# Protocol presets (reset + configure channels + timebase + trigger)
+python scopectl.py preset-i2c --sda 1 --scl 2 --speed 400k
+python scopectl.py preset-spi --sck 1 --mosi 2 --miso 3 --cs 4 --speed 1m
+python scopectl.py preset-uart -c 1 --baud 115200
+python scopectl.py preset-i2s --bclk 1 --ws 2 --data 3 --speed 3m
+```
+
+## Initialization Options
+
+### Option 1: Reset (closes dialogs + resets all settings)
+
+```bash
+cd /home/krisc/work/kris_lab/kris-lab/fnirsi-oscilloscope
+python scopectl.py reset
+python scopectl.py state
+```
+
+**Use when:** Starting fresh, don't care about current settings.
+
+### Option 2: Safe init (closes dialogs, preserves settings)
+
+```bash
+cd /home/krisc/work/kris_lab/kris-lab/fnirsi-oscilloscope
+
+# Toggle Measure button twice to clear any open dialog
+python scopectl.py click measure_button && sleep 0.3 && python scopectl.py click measure_button
+
+# Verify state is readable
+python scopectl.py state
+```
+
+**Use when:** Want to preserve current channel/trigger settings.
+
+**If still stuck with other dialogs**, try these:
+```bash
+python scopectl.py click --x 755 --y 68   # Trigger dialog X button
+python scopectl.py click --x 665 --y 68   # Cursor/Math dialog X button
+```
+
+## Voltage Scale Reference
+
+**Command:** `python scopectl.py ch <N> --scale <V/div>`
+
+| Scale | Use case |
+|-------|----------|
+| 10 mV | Very small signals, noise measurement |
+| 50 mV | Small signals (e.g., audio line level) |
+| 100 mV | Low voltage digital, some sensors |
+| 500 mV | Medium signals, many MCU GPIOs |
+| 1 V | Standard digital signals |
+| 2 V | 5V logic, power supply ripple |
+| 5 V | Higher voltage circuits |
+| 10 V | Power supply outputs |
+
+**Example workflow to find correct scale:**
+```bash
+# Start with large scale, work down until signal fills 3-5 divisions
+python scopectl.py ch 4 --on --scale 2
+python scopectl.py screenshot /tmp/s1.png
+# If signal too small, reduce scale:
+python scopectl.py ch 4 --scale 0.5
+python scopectl.py screenshot /tmp/s2.png
+```
+
+## Timebase Reference
+
+**Command:** `python scopectl.py tb <seconds_per_div>`
+
+| Timebase | Frequency range | Use case |
+|----------|-----------------|----------|
+| 1e-9 (1ns) | 100+ MHz | Fast digital edges |
+| 10e-9 (10ns) | 10-100 MHz | Fast SPI, clock signals |
+| 100e-9 (100ns) | 1-10 MHz | Medium speed digital |
+| 1e-6 (1µs) | 100kHz-1MHz | Slow SPI, fast I2C |
+| 10e-6 (10µs) | 10-100kHz | Audio, slow serial |
+| 100e-6 (100µs) | 1-10kHz | Audio, control signals |
+| 1e-3 (1ms) | 100Hz-1kHz | Low frequency, PWM |
+| 10e-3 (10ms) | 10-100Hz | Very slow signals |
+| 100e-3 (100ms) | <10Hz | Power-on sequences |
+
+**Rule of thumb:** Set timebase so 2-4 complete cycles are visible.
+
+**Example workflow:**
+```bash
+# Start with medium timebase, adjust based on signal
+python scopectl.py tb 100e-6
+python scopectl.py screenshot /tmp/t1.png
+# If too many cycles, increase timebase:
+python scopectl.py tb 500e-6
+# If too few cycles, decrease timebase:
+python scopectl.py tb 20e-6
+```
+
+## Protocol Presets
+
+One-command setup for common digital protocols:
+
+| Command | Protocol | Channels | Default Timebase |
+|---------|----------|----------|------------------|
+| `preset-i2c` | I2C | SDA, SCL | 5µs (400kHz) |
+| `preset-spi` | SPI | SCK, MOSI, MISO, CS | 2µs (1MHz) |
+| `preset-uart` | UART | TX/RX (1 ch) | 17µs (115200) |
+| `preset-i2s` | I2S | BCLK, WS, DATA | 500ns (3MHz) |
+
+**Each preset:** resets scope → enables channels → sets timebase/scale → configures trigger.
+
+```bash
+# I2C at 400kHz, 3.3V logic
+python scopectl.py preset-i2c --sda 1 --scl 2 --speed 400k -s /tmp/i2c.png
+
+# SPI at 10MHz, 3.3V logic
+python scopectl.py preset-spi --sck 1 --mosi 2 --miso 3 --cs 4 --speed 10m
+
+# UART at 115200 baud
+python scopectl.py preset-uart -c 1 --baud 115200
+
+# I2S audio (3MHz bit clock)
+python scopectl.py preset-i2s --bclk 1 --ws 2 --data 3 --speed 3m
+
+# All presets support: --voltage <V> (default 3.3), -s <file> for screenshot
+```
+
+## Complete Signal Debug Workflow
+
+```bash
+cd /home/krisc/work/kris_lab/kris-lab/fnirsi-oscilloscope
+
+# 1. Safe init
+python scopectl.py click measure_button && sleep 0.3 && python scopectl.py click measure_button
+
+# 2. Enable channel and start with safe defaults
+python scopectl.py ch 4 --on --scale 1 --coupling DC
+
+# 3. Set trigger on same channel
+python scopectl.py trig --src 4 --lev 0.5 --slope RISE
+
+# 4. Set timebase for expected frequency (adjust as needed)
+python scopectl.py tb 100e-6
+
+# 5. Screenshot to check
+python scopectl.py screenshot /tmp/check1.png
+
+# 6. Adjust scale if needed (iterate)
+python scopectl.py ch 4 --scale 0.5   # or 0.1, 2, etc.
+
+# 7. Adjust timebase if needed (iterate)
+python scopectl.py tb 500e-6   # show more time
+python scopectl.py tb 20e-6    # show less time
+
+# 8. Once stable, take measurements
+python scopectl.py measure 4 Vpp Freq
+```
+
+## Anti-Patterns — Don't Do These
+
+1. **Don't skip the safe init** — If a dialog is open, all commands will silently fail
+2. **Don't assume `auto` clears dialogs** — It doesn't; always run safe init first
+3. **Don't leave scale at 1V/div for small signals** — Adjust scale until signal fills 3-5 divisions
+4. **Don't leave timebase at default for unknown signals** — Iterate to show 2-4 complete cycles
+5. **Don't assume `state` output means scope is responsive** — Screenshot to verify visually
+6. **Don't try to close Measure dialog with click 664,68** — It's a no-op; re-tap `measure_button` instead
+7. **Don't open browser UI while scripts run** — Only one WebSocket client allowed
+8. **Don't use `:CHAN<n>:DISP` for on/off** — Silently ignored; use `ch <n> --on/--off`
+9. **Don't search for waveform export** — It doesn't exist; use OCR or screenshots
+
+## Iterative Adjustment Pattern
+
+When debugging an unknown signal, iterate:
+
+```bash
+# Initial setup
+python scopectl.py ch 4 --on --scale 1 --coupling DC
+python scopectl.py trig --src 4 --lev 0.5 --slope RISE
+python scopectl.py tb 100e-6
+python scopectl.py screenshot /tmp/s1.png
+
+# Check screenshot, then adjust based on what you see:
+# - Signal too small vertically? Reduce scale (e.g., 0.5, 0.2, 0.1)
+# - Signal too large/clipped? Increase scale (e.g., 2, 5)
+# - Too many cycles? Increase timebase (e.g., 500e-6, 1e-3)
+# - Too few cycles? Decrease timebase (e.g., 20e-6, 10e-6)
+# - No trigger? Adjust trigger level to middle of signal swing
+```
 
 ## Conventions for agents working here
 

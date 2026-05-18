@@ -32,13 +32,36 @@ When working on a specific instrument:
 
 Location: [fnirsi-oscilloscope/](../fnirsi-oscilloscope/)
 
-- Flat layout — modules import each other as bare names within the folder.
-- CLI entry: `scopectl.py` — argparse subcommands.
-- Library entry: `Scope` class in `scope.py`.
-- Documentation: `docs/INDEX.md` is the table of contents.
-- Touchscreen coordinates are module-level `UPPER_SNAKE` constants.
-- See [fnirsi-oscilloscope/AGENTS.md](../fnirsi-oscilloscope/AGENTS.md)
-  for critical runtime gotchas (SCPI buffering, dialog detection, etc.).
+**Working directory:** `cd /home/krisc/work/kris_lab/kris-lab/fnirsi-oscilloscope`
+
+**One-shot signal find (recommended start):**
+```bash
+python scopectl.py diagnose -c <CH> -s /tmp/scope.png
+```
+
+**Or clear dialogs first (choose one):**
+```bash
+python scopectl.py reset                           # Closes dialogs + resets settings
+python scopectl.py click measure_button && sleep 0.3 && python scopectl.py click measure_button  # Closes dialogs only
+```
+
+**Key commands:**
+```bash
+python scopectl.py state                          # Current settings
+python scopectl.py auto                           # Auto-set (finds signal)
+python scopectl.py screenshot /tmp/scope.png     # Visual check
+python scopectl.py ch <N> --on --scale <V/div>   # Channel + voltage scale
+python scopectl.py tb <s/div>                    # Timebase (e.g., 500e-6)
+python scopectl.py trig --src <N> --lev <V> --slope RISE
+python scopectl.py measure <ch> Vpp Freq         # OCR measurements
+```
+
+**Key facts:**
+- If commands silently fail, a dialog may be blocking — run safe init
+- Adjust scale until signal fills 3-5 vertical divisions
+- Adjust timebase to show 2-4 complete cycles
+- One WebSocket client only — close browser UI before scripts
+- See [fnirsi-oscilloscope/AGENTS.md](../fnirsi-oscilloscope/AGENTS.md) for full reference
 
 ## Kingst LA2016 quick reference
 

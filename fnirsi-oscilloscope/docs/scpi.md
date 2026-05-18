@@ -8,6 +8,7 @@ Hybrid Rigol / SCPI-99. **Channel argument is `C1`/`C2`/`C3`/`C4`**, NOT
 | Command | Effect |
 |---------|--------|
 | `*IDN?`, `*OPC?`, `SYST:VERS?`, `SYST:ERR?` | Identification + status |
+| `*RST` | Reset to defaults, closes all dialogs |
 | `:SYST:LANG?` | Returns `"SCHinese"` |
 | `:CHAN<n>:SCAL <V/div>` | Vertical scale |
 | `:CHAN<n>:OFFS <V>` | Vertical offset |
