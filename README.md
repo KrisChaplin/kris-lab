@@ -11,6 +11,7 @@ and agent-readable documentation.
 |--------|------------|--------|
 | [fnirsi-oscilloscope/](fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 (200 MHz, 1 GS/s) | ✅ Working |
 | [kingst-la2016/](kingst-la2016/) | Kingst LA2016 (200 MHz, 16 ch) | ✅ Working |
+| [glkvm-comet/](glkvm-comet/) | GL.iNet GL-RM1PE Comet PoE KVM | Working |
 
 ## Quick start
 

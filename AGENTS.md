@@ -15,6 +15,7 @@ CLI tools, and documentation.
 |--------|------------|-------------|
 | [fnirsi-oscilloscope/](fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 oscilloscope | [fnirsi-oscilloscope/AGENTS.md](fnirsi-oscilloscope/AGENTS.md) |
 | [kingst-la2016/](kingst-la2016/) | Kingst LA2016 logic analyzer | [kingst-la2016/AGENTS.md](kingst-la2016/AGENTS.md) |
+| [glkvm-comet/](glkvm-comet/) | GL.iNet GL-RM1PE Comet PoE KVM | [glkvm-comet/AGENTS.md](glkvm-comet/AGENTS.md) |
 
 ## Global conventions for agents
 
