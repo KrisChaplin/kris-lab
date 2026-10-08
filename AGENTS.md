@@ -16,6 +16,7 @@ CLI tools, and documentation.
 | [fnirsi-oscilloscope/](fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 oscilloscope | [fnirsi-oscilloscope/AGENTS.md](fnirsi-oscilloscope/AGENTS.md) |
 | [kingst-la2016/](kingst-la2016/) | Kingst LA2016 logic analyzer | [kingst-la2016/AGENTS.md](kingst-la2016/AGENTS.md) |
 | [glkvm-comet/](glkvm-comet/) | GL.iNet GL-RM1PE Comet PoE KVM | [glkvm-comet/AGENTS.md](glkvm-comet/AGENTS.md) |
+| [devantech-eth008b/](devantech-eth008b/) | Devantech ETH008-B 8-channel relay board | [devantech-eth008b/AGENTS.md](devantech-eth008b/AGENTS.md) |
 
 ## Global conventions for agents
 
@@ -31,6 +32,9 @@ CLI tools, and documentation.
 6. **Don't add dependencies** without updating `requirements.txt`.
 7. **Image-budget rule:** when inspecting many screenshots, sample
    pixels programmatically with PIL rather than viewing each PNG.
+8. **Instruments that switch real loads have rate limits.** Respect the
+   limit stated in the instrument's `AGENTS.md` and never disable a
+   built-in safety guard.
 
 ## How to navigate
 

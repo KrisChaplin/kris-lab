@@ -13,6 +13,7 @@ Each instrument lives in its own folder with dedicated code and docs:
 | [fnirsi-oscilloscope/](../fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 | [AGENTS.md](../fnirsi-oscilloscope/AGENTS.md) |
 | [kingst-la2016/](../kingst-la2016/) | Kingst LA2016 | [AGENTS.md](../kingst-la2016/AGENTS.md) |
 | [glkvm-comet/](../glkvm-comet/) | GL.iNet GL-RM1PE Comet PoE KVM | [AGENTS.md](../glkvm-comet/AGENTS.md) |
+| [devantech-eth008b/](../devantech-eth008b/) | Devantech ETH008-B relay board | [AGENTS.md](../devantech-eth008b/AGENTS.md) |
 
 ## Global conventions
 
@@ -85,3 +86,32 @@ sigrok-cli-la2016 -d kingst-la2016 --config samplerate=<RATE> --samples <N> [--t
 - Only ONE edge trigger allowed (level triggers can combine)
 - GUI: `pulseview-la2016` (run from regular terminal, not VS Code)
 - See [kingst-la2016/AGENTS.md](../kingst-la2016/AGENTS.md) for full command reference.
+
+## Devantech ETH008-B quick reference
+
+Location: [devantech-eth008b/](../devantech-eth008b/)
+
+**Address:** `192.168.0.200`, TCP command port 17494. Standard library only.
+
+```bash
+cd devantech-eth008b
+python relayctl.py info                 # module id, versions, MAC, supply volts
+python relayctl.py status               # 0x0d  00001101  1:ON 2:off ...
+python relayctl.py on 3                 # energise relay 3
+python relayctl.py off 3
+python relayctl.py on 3 --pulse 2.5     # auto-release after 2.5 s
+python relayctl.py set 1,3,4            # whole mask in one command
+python relayctl.py all-off
+```
+
+**Key facts:**
+- ⚠️ Contacts drive powered equipment — **never switch faster than 3 Hz**.
+  `relayctl.py` enforces this; do not pass `--no-rate-limit`.
+- Read `status` first and restore the mask you found when probing.
+- Relays are 1-8; the `0x24` bitmask uses bit 0 for relay 1.
+- Pulsed `off` means "off for N seconds then back **on**", not a delayed off.
+- No inputs on this model; input commands just time out.
+- Only 5 concurrent TCP connections, and a command is dropped if the socket
+  closes before its acknowledgement is read.
+- See [devantech-eth008b/AGENTS.md](../devantech-eth008b/AGENTS.md) for the full
+  command sets.

@@ -12,6 +12,7 @@ and agent-readable documentation.
 | [fnirsi-oscilloscope/](fnirsi-oscilloscope/) | FNIRSI DPOF1204-200 (200 MHz, 1 GS/s) | ✅ Working |
 | [kingst-la2016/](kingst-la2016/) | Kingst LA2016 (200 MHz, 16 ch) | ✅ Working |
 | [glkvm-comet/](glkvm-comet/) | GL.iNet GL-RM1PE Comet PoE KVM | Working |
+| [devantech-eth008b/](devantech-eth008b/) | Devantech ETH008-B (8-channel Ethernet relay) | ✅ Working |
 
 ## Quick start
 
@@ -22,6 +23,11 @@ pip install -r requirements.txt          # common deps (also needs system `tesse
 cd fnirsi-oscilloscope
 python scopectl.py state                  # dump scope state
 python scopectl.py screenshot out.png     # capture screen
+
+# Devantech ETH008-B relay board (stdlib only)
+cd devantech-eth008b
+python relayctl.py status                 # state of all eight relays
+python relayctl.py on 3 --pulse 2.5       # energise relay 3 for 2.5 s
 ```
 
 ## For AI agents
@@ -51,6 +57,9 @@ kris-lab/
     ├── docs/                  ← Topic-partitioned documentation
     └── tools/                 ← Diagnostic/probe scripts
 ```
+
+Other instrument folders follow the same shape: `AGENTS.md`, `README.md`,
+a CLI entry point, and a `docs/` subfolder with an `INDEX.md`.
 
 ## License
 
